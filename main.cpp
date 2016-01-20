@@ -74,6 +74,9 @@ void tmaanaii();
 /************************************   main  **************************************/
 
 int main(){
+	
+	// I Changed here for testing...
+	
 	pre_process();
 	read_input();
 	check_token();
