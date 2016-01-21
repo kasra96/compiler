@@ -1,25 +1,29 @@
-hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+/* In The Name Of God */
 #include <bits/stdc++.h>
 #include <conio.h>
 
+
 using namespace std;
 string s,t[20];
+int qq;
+char tttt[50];
 char ch[1000];
 string IRtext[100000];
 string token[]={"key","op","punc","num","ch","id","inv"};
 string type[]={"NULL","int","float","char","bool"};
-int cnt=0,pos=0,inmap,L=1,strpos;
+int cnt=0,pos=0,inmap=10,L=1,strpos;
 set<string> keywords,operators,punc;
 set<int> inv_line;
 map<string , int> mp;
 struct mem{
 	double val;
-	int id,type;
+	int id,type,number;
 	bool have_val;
 	mem* next;
 	mem(){
 		id=0;
 		have_val=false;
+		number=0;
 		next=NULL;
 	}
 }first_mem;
@@ -35,6 +39,7 @@ struct node{
 		next=NULL;
 	}
 }F;
+
 node* IR_ref;
 node *ref;
 void fill_set();
@@ -74,16 +79,13 @@ void tmaanaii();
 /************************************   main  **************************************/
 
 int main(){
-	
-	// I Changed here for testing...
-	
 	pre_process();
 	read_input();
-	check_token();
 	ref=&F;
 	ref=ref->next;
 	tnahvi();
 	IR_pre();
+	check_token();
 	tmaanaii();
 	return 0;
 }
@@ -133,7 +135,7 @@ void check_token(){
 	ref = &F;
 	while(ref->next != NULL){
 		ref=ref->next;
-		cout<<ref->line<<' '<<token[ref->tok]<<' ';
+		cout<<ref->m<<' '<<token[ref->tok]<<' ';
 		for(int i=0 ; ref->ch[i]!='\0' ; i++)
 			cout<< ref->ch[i];
 		cout<<endl;
@@ -146,8 +148,27 @@ void pre_process(){
 	FILE * pFile;
 	FILE * fFile;
 	FILE * vFile;
+	string stt;
 	pFile = fopen("input.txt","r");
-	vFile = fopen("varables.h","r");
+	while(true){
+		char ch=fgetc(pFile);
+		if(ch=='#'){
+			while(ch != '\"')
+				ch=fgetc(pFile);
+			ch=fgetc(pFile);
+			int pos=0;
+			while(ch!= '\"'){
+				tttt[pos] = ch;
+				pos++;
+				ch=fgetc(pFile);
+			}
+			tttt[pos]='\0';
+			break;
+		}
+	}
+	fclose(pFile);
+	pFile = fopen("input.txt","r");
+	vFile = fopen(tttt,"r");
 	fFile = fopen("final.txt","w");
 	char prech;
 	bool mark=false;
@@ -158,7 +179,7 @@ void pre_process(){
 				fprintf(fFile,"\n");
 			break;
 		}
-		mark=false;
+		mark=true;
 		if(ch!=prech || (int)ch!=10)
 		fprintf(fFile , "%c" , ch);
 		prech=ch;
@@ -240,6 +261,7 @@ void line_tokenize(){
 			ref->tok = 5;
 		ref->line=pos;
 		if(ref->tok == 5 && emlaE(ref)==false){
+			qq=1;
 			inv_line.insert(ref->line);
 			cout<<"Erorr in line "<<ref->line<<" your Identifier ( "<<tostr(ref)<<" ) is not valid\n";
             ref->tok=6;
@@ -299,7 +321,7 @@ string tostr(node * test){
 	return tmp;
 }
 
-/*********************************** generate IR *******************************/
+/*********************************** pre IR *******************************/
 
 void IR_pre(){
 	node* ref= &F;
@@ -309,6 +331,12 @@ void IR_pre(){
 			continue;
 		if(mp.find(tostr(ref)) == mp.end())
 			addmem(ref);
+		else{
+			mem* tmp_mem = &first_mem;
+			while(tmp_mem->id != mp[tostr(ref)])
+				tmp_mem = tmp_mem->next;
+			ref->m = tmp_mem;
+		}
 	}
 	ref= &F;
 	while(ref->next != NULL){
@@ -350,7 +378,7 @@ void IR_pre(){
 	}
 }
 /*********************************** IR_gen ***********************************/
-int buf=0;
+
 void IR_gen(int fakeL,node* fakeref,bool flag){
 	while(true){
 		IR_ref = IR_ref->next;
@@ -450,7 +478,7 @@ void IR_gen(int fakeL,node* fakeref,bool flag){
 /*********************************** get memory *******************************/
 
 void addmem(node* ref){
-	mp[tostr(ref)]=inmap++;
+	mp[tostr(ref)]=inmap;
 	mem* tmp_mem= &first_mem;
 	while(tmp_mem->next != NULL)
 		tmp_mem=tmp_mem->next;
@@ -462,12 +490,13 @@ void addmem(node* ref){
 	tmp_mem->id = inmap;
 	tmp_mem->val=0;
 	tmp_mem->have_val=false;
+	if(ref->tok ==5){
+        tmp_mem->val=1e-9;
+	}
 	if(ref->tok ==3){
 		tmp_mem->have_val = true;
 		init(ref,tmp_mem);
 	}
-	string s= tostr(ref);
-	//cout<<s<<' '<<type[tmp_mem->type]<<"     "<<token[ref->tok]<<' '<<tmp_mem->val<<endl;
 }
 
 /************************************** Initialized ******************************************/
@@ -572,7 +601,7 @@ int tcheck2(node *a,node *b,node *c){
 }
 
 void value1(node *a,node *b){
-    if(b->m->val==1e-9){
+    if( (b->m)->val == 1e-9){
         printf("the value of %s is unknown in line %d\n",b->ch,b->line);
     }
     else{
@@ -580,21 +609,25 @@ void value1(node *a,node *b){
     }
 }
 void value2(node *a,node *b,node *c,int o){
-    if(b->m->val==1e-9){
+    if(b->m->val == 1e-9){
         printf("the value of %s is unknown in line %d\n",b->ch,b->line);
     }
-    if(c->m->val==1e-9){
+    if(c->m->val == 1e-9){
         printf("the value of %s is unknown in line %d\n",c->ch,c->line);
     }
     else{
         if(o==1){
             a->m->val=(b->m->val)+(c->m->val);
+
+            return;
         }
         if(o==2){
             a->m->val=(b->m->val)-(c->m->val);
+            return;
         }
         if(o==3){
             a->m->val=(b->m->val)*(c->m->val);
+            return;
         }
         if(o==4){
             if(c->m->val==0){
@@ -602,6 +635,7 @@ void value2(node *a,node *b,node *c,int o){
                 return;
             }
             a->m->val=(b->m->val)/(c->m->val);
+            return;
         }
         else{
             printf("qarar nabud injuri bashe!!!\n");
@@ -871,13 +905,11 @@ void tmaanaii(){
     ref=ref->next;
     while(strcmp(ref->ch,"void")!=0){
         if(token[ref->tok]=="id"){
-                printf("!!!!!!!!\n");
             id1();
             ref=ref->next;
             continue;
         }
         if((ref->tok==0)&&(strcmp(ref->ch,"if")!=0)&&(strcmp(ref->ch,"else")!=0)){
-                printf("######\n");
             kw();
             ref=ref->next;
             continue;
@@ -954,6 +986,7 @@ void tmaanaii(){
 }
 
 int getop(node *o){
+
     if(strcmp(o->ch,"+")==0){
         return 1;
     }
